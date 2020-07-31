@@ -2,17 +2,17 @@
 
 A very minimal command line application to perform simple HTTP GET requests, written in Go
 
-```
-usage
+## Usage
 
+```
 http-get <url>
 
 flags
 
--o output - write to a file (otherwise stdout)
--t maxDownloadTime - timeout before abandoning download
--T maxConnectTime - timeout when trying to connect to server
--u userAgent - User-Agent to use when making requests
+-o output - write to a file (otherwise stdout if not specified)
+-t maxDownloadTime - timeout before abandoning download (default 10s)
+-T maxConnectTime - timeout when trying to connect to server (default 5s)
+-u userAgent - User-Agent to use when making requests (default is Golang default http client)
 
 ```
 
