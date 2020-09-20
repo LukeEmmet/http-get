@@ -12,15 +12,32 @@ import (
    
 )
 
+var version = "0.1.2"
+
 var (
-    input = flag.StringP("input", "i", "", "Input path. '-' means stdin\n")
-    output = flag.StringP("output", "o", "", "Output path. '-' means stdout\n")
-    userAgent = flag.StringP("userAgent", "u", "", "User agent for HTTP requests\n")
-    maxDownloadTime = flag.IntP("maxDownloadTime", "t", 10, "Max download time (s)\n")
-    maxConnectTime = flag.IntP("maxConnectTime", "T", 5, "Max connect time (s)\n")
+    input = flag.StringP("input", "i", "", "Input path. '-' means stdin")
+    output = flag.StringP("output", "o", "", "Output path. '-' means stdout")
+    userAgent = flag.StringP("userAgent", "u", "", "User agent for HTTP requests")
+    header = flag.Bool("header", false, "Print out (even with --quiet) the response header to stdout in the format:\nHeader: <status> <meta>")
+    maxDownloadTime = flag.IntP("maxDownloadTime", "t", 10, "Max download time (s)")
+    maxConnectTime = flag.IntP("maxConnectTime", "T", 5, "Max connect time (s)")
+	verFlag           = flag.BoolP("version", "v", false, "Find out what version of http-get you're running")
 )
 
- 	
+func fatal(format string, a ...interface{}) {
+	urlError(format, a...)
+	os.Exit(1)
+}
+
+func urlError(format string, a ...interface{}) {
+	format = "Error: " + strings.TrimRight(format, "\n") + "\n"
+	fmt.Fprintf(os.Stderr, format, a...)
+}
+
+func info(format string, a ...interface{}) {
+	format = "Info: " + strings.TrimRight(format, "\n") + "\n"
+	fmt.Fprintf(os.Stderr, format, a...)
+}
 
 func keepLines(s string, n int) string {
 	result := strings.Join(strings.Split(s, "\n")[:n], "\n")
@@ -30,8 +47,7 @@ func keepLines(s string, n int) string {
 
 func check(e error) {
     if e != nil {
-        panic(e)
-        os.Exit(1)
+        fatal("%s", e)
     }
 }
 
@@ -47,6 +63,13 @@ func main() {
     //also https://gist.github.com/ijt/950790/fca88967337b9371bb6f7155f3304b3ccbf3946f
 
     flag.Parse()
+
+    if *verFlag {
+		fmt.Println("http-get v" + version)
+		return
+	}
+    
+    
     args := flag.Args() //get trailing arguments after any flags
     url := args[0]      //url is the last argument
 
@@ -89,13 +112,18 @@ func main() {
     if (url != response.Request.URL.String()) {
         //notify of target location on stderr
         //see https://stackoverflow.com/questions/16784419/in-golang-how-to-determine-the-final-url-after-a-series-of-redirects
-         fmt.Fprintln(os.Stderr, "redirected: " + response.Request.URL.String())
+         fmt.Fprintln(os.Stderr, "Redirected: " + response.Request.URL.String())
     }
     
     defer response.Body.Close()
     contents, err := ioutil.ReadAll(response.Body)
     check(err)
     
+    if *header {
+		fmt.Printf("StatusCode: %d\n", response.StatusCode)
+		fmt.Printf("Status: %s\n", response.Status)
+		fmt.Printf("Content-Type: %s\n", strings.Join(response.Header["Content-Type"], ";"))
+	}
     
     //process the output
     if (*output == "-") || (*output == "") {
